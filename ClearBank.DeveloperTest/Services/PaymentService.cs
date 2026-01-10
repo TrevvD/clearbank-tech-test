@@ -16,9 +16,7 @@ namespace ClearBank.DeveloperTest.Services
         {
             var account = _accountDataStore.GetAccount(request.DebtorAccountNumber);
 
-            var result = new MakePaymentResult();
-
-            result.Success = true;
+            var result = new MakePaymentResult { Success = true };
 
             switch (request.PaymentScheme)
             {
@@ -26,10 +24,12 @@ namespace ClearBank.DeveloperTest.Services
                     if (account == null)
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.AccountNotFound;
                     }
                     else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Bacs))
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.SchemeNotAllowed;
                     }
                     break;
 
@@ -37,14 +37,17 @@ namespace ClearBank.DeveloperTest.Services
                     if (account == null)
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.AccountNotFound;
                     }
                     else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.SchemeNotAllowed;
                     }
                     else if (account.Balance < request.Amount)
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.InsufficientBalance;
                     }
                     break;
 
@@ -52,14 +55,17 @@ namespace ClearBank.DeveloperTest.Services
                     if (account == null)
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.AccountNotFound;
                     }
                     else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.SchemeNotAllowed;
                     }
                     else if (account.Status != AccountStatus.Live)
                     {
                         result.Success = false;
+                        result.FailureReason = PaymentFailureReason.AccountNotLive;
                     }
                     break;
             }
