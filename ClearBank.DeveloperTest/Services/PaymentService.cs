@@ -1,81 +1,42 @@
+using System.Collections.Generic;
+using System.Linq;
 using ClearBank.DeveloperTest.Data;
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Validators;
+using FluentValidation;
 
 namespace ClearBank.DeveloperTest.Services
 {
-    public class PaymentService : IPaymentService
+    public class PaymentService(IAccountDataStoreFactory accountDataStoreFactory) : IPaymentService
     {
-        private readonly IAccountDataStore _accountDataStore;
-
-        public PaymentService(IAccountDataStoreFactory accountDataStoreFactory)
+        private readonly IAccountDataStore _accountDataStore = accountDataStoreFactory.Create();
+        private readonly Dictionary<PaymentScheme, IValidator<PaymentValidationContext>> _validators = new()
         {
-            _accountDataStore = accountDataStoreFactory.Create();
-        }
+            { PaymentScheme.Bacs, new BacsPaymentValidator() },
+            { PaymentScheme.FasterPayments, new FasterPaymentsValidator() },
+            { PaymentScheme.Chaps, new ChapsPaymentValidator() }
+        };
 
         public MakePaymentResult MakePayment(MakePaymentRequest request)
         {
             var account = _accountDataStore.GetAccount(request.DebtorAccountNumber);
+            var context = new PaymentValidationContext { Account = account, Request = request };
+            var validator = _validators[request.PaymentScheme];
+            var validationResult = validator.Validate(context);
 
-            var result = new MakePaymentResult { Success = true };
-
-            switch (request.PaymentScheme)
+            var result = new MakePaymentResult
             {
-                case PaymentScheme.Bacs:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.AccountNotFound;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Bacs))
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.SchemeNotAllowed;
-                    }
-                    break;
+                Success = validationResult.IsValid,
+                FailureReason = validationResult.IsValid ? null : validationResult.Errors.First().ErrorMessage
+            };
 
-                case PaymentScheme.FasterPayments:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.AccountNotFound;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.SchemeNotAllowed;
-                    }
-                    else if (account.Balance < request.Amount)
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.InsufficientBalance;
-                    }
-                    break;
-
-                case PaymentScheme.Chaps:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.AccountNotFound;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.SchemeNotAllowed;
-                    }
-                    else if (account.Status != AccountStatus.Live)
-                    {
-                        result.Success = false;
-                        result.FailureReason = PaymentFailureReason.AccountNotLive;
-                    }
-                    break;
-            }
-
-            if (result.Success)
+            if (!result.Success)
             {
-                account.Balance -= request.Amount;
-                _accountDataStore.UpdateAccount(account);
+                return result;
             }
-
+            
+            account.Balance -= request.Amount;
+            _accountDataStore.UpdateAccount(account);
             return result;
         }
     }

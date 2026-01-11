@@ -69,7 +69,7 @@ public class PaymentServiceTests
         var result = _sut.MakePayment(request);
 
         result.Success.Should().BeTrue();
-        result.FailureReason.Should().Be(PaymentFailureReason.None);
+        result.FailureReason.Should().BeNull();
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class PaymentServiceTests
         var result = _sut.MakePayment(request);
 
         result.Success.Should().BeTrue();
-        result.FailureReason.Should().Be(PaymentFailureReason.None);
+        result.FailureReason.Should().BeNull();
     }
 
     [Theory]
