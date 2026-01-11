@@ -1,21 +1,22 @@
-### Test Description
-In the 'PaymentService.cs' file you will find a method for making a payment. At a high level the steps for making a payment are:
+### Identified Improvements
+- SOLID
+   - Single Responsibility - PaymentService clearly doing way too much, it's deciding validation for various schemes, updating account values, persisting the results. 
+   - Open/Closed - Adding a new payment method requires modifying PaymentService, as per-service logic is included in this file.
+   - Interface Segregation - DataStore objects can share an interface, as will payment method validators.
+   - Dependency Inversion - Objects being directly instantiated within the service mean they can't be tested, should be injected using DI.
+- Testability
+  - Return for MakePayment only contains a true/false, rather than any information about why, means tests can't guarantee they fail for exactly one reason.
+  - Lack of interfaces means mocking is impossible.
+  - Direct instantiation of objects, rather than injection, means we can't inject mocks or test doubles.
+- Readability
+  - Very difficult to read, due to levels of nesting, high cognitive complexity.
+  - Large chunks of code irrelevant depending on the type of payment you're making.
+  - Shared logic per payment type repeated.
 
- - Lookup the account the payment is being made from
- - Check the account is in a valid state to make the payment
- - Deduct the payment amount from the account's balance and update the account in the database
- 
-What we’d like you to do is refactor the code with the following things in mind:  
- - Adherence to SOLID principals
- - Testability  
- - Readability 
-
-We’d also like you to add some unit tests to the ClearBank.DeveloperTest.Tests project to show how you would test the code that you’ve produced. The only specific ‘rules’ are:  
-
- - The solution should build.
- - The tests should all pass.
- - You should not change the method signature of the MakePayment method.
-
-You are free to use any frameworks/NuGet packages that you see fit.  
- 
-You should plan to spend around 1 to 3 hours to complete the exercise.
+## Further Improvements
+- Persist the account values using an in-memory DB
+- Add CRUD operations for Accounts.
+- Spin up the actual API using WebApplicationFactory.
+- Add various integration tests, removing the dependency on some of the brittle unit tests.
+- Add Swagger/OpenAPI generation.
+- Containerise the API for portability.
