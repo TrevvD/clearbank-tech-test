@@ -7,15 +7,12 @@ using FluentValidation;
 
 namespace ClearBank.DeveloperTest.Services
 {
-    public class PaymentService(IAccountDataStoreFactory accountDataStoreFactory) : IPaymentService
+    public class PaymentService(
+        IAccountDataStoreFactory accountDataStoreFactory,
+        IDictionary<PaymentScheme, IValidator<PaymentValidationContext>> validators) : IPaymentService
     {
         private readonly IAccountDataStore _accountDataStore = accountDataStoreFactory.Create();
-        private readonly Dictionary<PaymentScheme, IValidator<PaymentValidationContext>> _validators = new()
-        {
-            { PaymentScheme.Bacs, new BacsPaymentValidator() },
-            { PaymentScheme.FasterPayments, new FasterPaymentsValidator() },
-            { PaymentScheme.Chaps, new ChapsPaymentValidator() }
-        };
+        private readonly IDictionary<PaymentScheme, IValidator<PaymentValidationContext>> _validators = validators;
 
         public MakePaymentResult MakePayment(MakePaymentRequest request)
         {

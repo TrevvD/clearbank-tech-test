@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using AutoFixture;
 using AutoFixture.AutoMoq;
 using ClearBank.DeveloperTest.Data;
 using ClearBank.DeveloperTest.Services;
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Validators;
 using FluentAssertions;
+using FluentValidation;
 using Moq;
 using Xunit;
 
@@ -22,7 +25,15 @@ public class PaymentServiceTests
 
         var factoryMock = new Mock<IAccountDataStoreFactory>();
         factoryMock.Setup(f => f.Create()).Returns(_dataStoreMock.Object);
-        _sut = new PaymentService(factoryMock.Object);
+
+        var validators = new Dictionary<PaymentScheme, IValidator<PaymentValidationContext>>
+        {
+            { PaymentScheme.Bacs, new BacsPaymentValidator() },
+            { PaymentScheme.FasterPayments, new FasterPaymentsValidator() },
+            { PaymentScheme.Chaps, new ChapsPaymentValidator() }
+        };
+
+        _sut = new PaymentService(factoryMock.Object, validators);
     }
 
     [Theory]
